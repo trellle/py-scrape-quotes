@@ -9,7 +9,7 @@ class Quote:
 
 
 def main(output_csv_path: str) -> None:
-    pass
+    
 
 
 if __name__ == "__main__":
