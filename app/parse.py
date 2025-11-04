@@ -1,11 +1,10 @@
 import csv
-from dataclasses import dataclass, fields, astuple
+from dataclasses import dataclass, fields
 from urllib.parse import urljoin
 import requests
 from bs4 import BeautifulSoup, Tag
 
 BASE_URL = "https://quotes.toscrape.com"
-MAX_PAGES = 50
 
 
 @dataclass
@@ -31,6 +30,10 @@ def get_quote(content: Tag, authors: list[Author]) -> Quote:
         biography = (BeautifulSoup(text, "html.parser")
                      .select_one(".author-description").text)
         author = Author(name=author_name, biography=biography)
+    else:
+        author = next((author_obj
+                       for author_obj in authors
+                       if author_name == author_obj.name), None)
     return Quote(
         text=content.select_one(".text").text,
         author=author,
@@ -51,17 +54,17 @@ def get_quotes_list(link: str,
 def main(output_csv_path: str) -> None:
     authors = []
     quotes, pagination = get_quotes_list(BASE_URL, authors)
-    for i in range(MAX_PAGES - 1):
-        if pagination:
-            next_page = urljoin(BASE_URL, pagination["href"])
-            parsed_quotes, pagination = get_quotes_list(next_page, authors)
-            quotes.extend(parsed_quotes)
-        else:
-            break
+    while pagination:
+        next_page = urljoin(BASE_URL, pagination["href"])
+        parsed_quotes, pagination = get_quotes_list(next_page, authors)
+        quotes.extend(parsed_quotes)
     with open(output_csv_path, "w") as f:
         writer = csv.writer(f)
         writer.writerow([field.name for field in fields(Quote)])
-        writer.writerows([astuple(quote) for quote in quotes])
+        writer.writerows([(quote.text,
+                           quote.author.name,
+                           quote.author.biography,
+                           ",".join(quote.tags)) for quote in quotes])
 
 
 if __name__ == "__main__":
