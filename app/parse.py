@@ -28,21 +28,24 @@ def get_quote(content: Tag, authors: list[Author]) -> Quote:
         author_link = content.select_one("span.author + a")
         link_to_biography = urljoin(BASE_URL, author_link["href"])
         text = requests.get(link_to_biography).content
-        biography = BeautifulSoup(text, "html.parser").select_one(".author-description").text
+        biography = (BeautifulSoup(text, "html.parser")
+                     .select_one(".author-description").text)
         author = Author(name=author_name, biography=biography)
-    return Quote(                                                                                                   
+    return Quote(
         text=content.select_one(".text").text,
         author=author,
         tags=[tag.text for tag in tags_html]
     )
 
 
-def get_quotes_list(link: str, authors: list[Author]) -> tuple[list[Quote], Tag]:
+def get_quotes_list(link: str,
+                    authors: list[Author]) -> tuple[list[Quote], Tag]:
     text = requests.get(link).content
     soup = BeautifulSoup(text, "html.parser")
     quotes_html = soup.select(".quote")
     pagination = soup.select_one(".next a")
-    return [get_quote(quote_block, authors) for quote_block in quotes_html], pagination
+    return [get_quote(quote_block, authors)
+            for quote_block in quotes_html], pagination
 
 
 def main(output_csv_path: str) -> None:
